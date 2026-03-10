@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espresso Companion</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#09090c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Espresso" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+</head>
+<body style="margin:0;padding:0;">
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect } = React;
+
+const LAVAZZA_BEANS = [
+  {
+    id: "espresso",
+    name: "Espresso Whole Bean",
+    tagline: "Aromatic & fragrant",
+    intensity: 5,
+    roast: "Medium",
+    composition: "100% Arabica",
+    origin: "Africa, Central & South America",
+    notes: ["Floral", "Fruity"],
+    color: "#c17f3c",
+    opusMacro: 2,
+    opusMicro: 3,
+    temp: "93–94°C",
+    dose: 18,
+    yield: 36,
+    time: 28,
+    tip: "Light, aromatic Arabica — keep extraction restrained. The floral and fruity notes open up best at 93°C. Watch for sourness; go 1–2 micro clicks finer if needed. Expect a lighter-bodied shot.",
+  },
+  {
+    id: "super-crema",
+    name: "Super Crema",
+    tagline: "Full-bodied & harmonious",
+    intensity: 4,
+    roast: "Medium Espresso",
+    composition: "60% Arabica / 40% Robusta",
+    origin: "Brazil, Central America, Indonesia",
+    notes: ["Hazelnut", "Brown sugar", "Smoky"],
+    color: "#a0662a",
+    opusMacro: 2,
+    opusMicro: 2,
+    temp: "92–93°C",
+    dose: 18,
+    yield: 36,
+    time: 30,
+    tip: "Lavazza's bestseller. The Robusta adds body and crema — pull slightly coarser than pure Arabica. Lower temp (92°C) prevents over-extraction of the Robusta. Hazelnut notes develop in the mid-shot; let it run the full 30s.",
+  },
+  {
+    id: "gran-crema",
+    name: "Espresso Barista Gran Crema",
+    tagline: "Rich & intense with lingering crema",
+    intensity: 7,
+    roast: "Medium",
+    composition: "100% Arabica (slow roasted)",
+    origin: "South America, Southeast Asia",
+    notes: ["Dark chocolate", "Nutty", "Spice"],
+    color: "#8b4a20",
+    opusMacro: 2,
+    opusMicro: 4,
+    temp: "93–95°C",
+    dose: 18,
+    yield: 38,
+    time: 32,
+    tip: "Slow-roasted for depth — runs slightly bitter if over-extracted. Dial slightly coarser (micro 4) than the Espresso blend. The chocolate notes need the full 32s to develop. Great for milk drinks.",
+  },
+  {
+    id: "qualita-oro",
+    name: "Qualità Oro",
+    tagline: "Fruity & aromatic premium",
+    intensity: 5,
+    roast: "Medium",
+    composition: "100% Arabica",
+    origin: "Central America, African highlands",
+    notes: ["Fruity", "Aromatic", "Honey"],
+    color: "#c9922a",
+    opusMacro: 2,
+    opusMicro: 2,
+    temp: "93–94°C",
+    dose: 18,
+    yield: 36,
+    time: 27,
+    tip: "Highland Arabica — similar approach to the Espresso blend but even brighter. Shorter shot time (27s) preserves the fruity top notes. Very sensitive to channeling; thorough WDT is critical. Beautiful as a black espresso.",
+  },
+  {
+    id: "lamborghini",
+    name: "Espresso Automobili Lamborghini",
+    tagline: "Maximum intensity",
+    intensity: 10,
+    roast: "Dark",
+    composition: "Arabica & Robusta blend",
+    origin: "Multiple origins",
+    notes: ["Bold", "Roasted", "Strong"],
+    color: "#6b3010",
+    opusMacro: 2,
+    opusMicro: 5,
+    temp: "91–92°C",
+    dose: 17,
+    yield: 34,
+    time: 25,
+    tip: "Full throttle — high Robusta, dark roast. Keep temperature lower (91°C) to avoid harsh bitterness. Shorter shot (25s) and slightly coarser (micro 5) prevents turning bitter. More forgiving of minor channeling than lighter roasts.",
+  },
+];
+
+const EQUIPMENT = {
+  machine: { name: "Stone Espresso", boiler: "1.5L dual boiler", pressure: "9 bar", temp: "90–96°C" },
+  grinder: { name: "Fellow Opus", macroRange: "1–3 for espresso", microRange: "6 micro-steps per macro", burrs: "40mm conical" },
+  portafilter: { name: "Normcore 58mm Bottomless", size: "58mm", type: "Bottomless / naked" },
+  tamper: { name: "Normcore Spring-Loaded V4", pressure: "15–20 kg consistent" },
+  distributor: { name: "WDT Needle + Normcore Gravity", steps: ["WDT needle stir first", "Follow with gravity distributor"] },
+};
+
+const WORKFLOW = [
+  { id: "dose", step: "Single dose", detail: "Weigh 18–20g beans directly into Opus hopper. Don't store beans in grinder." },
+  { id: "grind", step: "Grind", detail: "Set macro (1–3) + micro inner ring. Tap grinder body after stopping to release retained grounds (0.5–0.8g typical)." },
+  { id: "flip", step: "Flip & dose", detail: "Place 58mm portafilter on dosing cup, flip and tap bottom before removing." },
+  { id: "wdt", step: "WDT stir", detail: "Use your needle distributor in a circular + radial pattern to break up clumps and eliminate channels." },
+  { id: "gravity", step: "Gravity distribute", detail: "Place Normcore gravity distributor on top, spin gently to level the bed evenly." },
+  { id: "tamp", step: "Tamp", detail: "Normcore spring-loaded V4 ensures consistent pressure. Press until you feel the spring engage — no rocking." },
+  { id: "pull", step: "Pull shot", detail: "Lock portafilter. Start timer. Target 25–35s for 2:1 ratio (e.g., 18g in → 36g out)." },
+  { id: "taste", step: "Taste & adjust", detail: "Sour = grind finer or lower temp. Bitter = grind coarser or shorter time. Blonde streaking = distribution issue." },
+];
+
+const TASTE_OPTIONS = [
+  { value: -2, label: "Very Sour", color: "#e8c84a", emoji: "🍋" },
+  { value: -1, label: "Sour", color: "#c5b43a", emoji: "😬" },
+  { value: 0, label: "Balanced", color: "#4caf72", emoji: "✨" },
+  { value: 1, label: "Bitter", color: "#c47840", emoji: "😕" },
+  { value: 2, label: "Very Bitter", color: "#8b3a3a", emoji: "☕" },
+];
+
+const ADJUSTMENT_TIPS = {
+  "-2": "Go significantly finer on your Opus micro ring (2–3 clicks). Also try adding 1–2°C on the Stone.",
+  "-1": "Go 1–2 clicks finer on the Opus micro ring. Check your WDT is thorough — sourness can be channeling.",
+  "0": "Perfect. Log this setting. The repeatability of your spring tamper and Normcore distributor should hold it.",
+  "1": "Go 1–2 clicks coarser on micro ring, or reduce yield by 2–3g. Check tamp wasn't over-compressed.",
+  "2": "Go coarser on the macro ring (up one step) and reset micro to center. Reduce extraction time.",
+};
+
+const defaultShot = {
+  date: new Date().toISOString().split("T")[0],
+  dose: 18,
+  yield: 36,
+  time: 30,
+  macro: 2,
+  micro: 3,
+  taste: 0,
+  notes: "",
+  beans: "",
+  beanId: "",
+};
+
+
+// ─── Diagnose Component ───────────────────────────────────────────────────────
+
+const PUCK_SYMPTOMS = [
+  {
+    id: "soggy_center",
+    label: "Soggy / wet center",
+    emoji: "💧",
+    category: "puck",
+    causes: [
+      "Grind too coarse — water blasted through without resistance",
+      "Under-dosed — too little coffee, bed collapsed under pressure",
+      "Machine not flushed — stale hot water sitting in group head soaked the puck",
+    ],
+    fixes: [
+      { tool: "Fellow Opus", action: "Go 2–3 micro clicks finer. Center of puck staying wet = water racing through." },
+      { tool: "Dose", action: "Increase dose 0.5–1g. A thin puck collapses under 9 bar." },
+      { tool: "Stone", action: "Always flush the group head 2–3 seconds before locking in. Purges stale water and stabilizes temp." },
+    ],
+  },
+  {
+    id: "soggy_all",
+    label: "Entire puck wet / sloppy",
+    emoji: "🌊",
+    category: "puck",
+    causes: [
+      "Shot pulled too short — not enough liquid extracted, excess moisture stayed in puck",
+      "Grind very coarse — water passed instantly, puck never dried out",
+      "Basket overfilled — no headspace, puck pressed against shower screen and steam-soaked",
+    ],
+    fixes: [
+      { tool: "Yield", action: "Increase yield 3–5g. A wet sloppy puck often means you stopped too early." },
+      { tool: "Fellow Opus", action: "Go finer on both macro and micro. A completely wet puck is often a grind issue." },
+      { tool: "Dose", action: "Check dose vs basket capacity. 18–20g is ideal for your 58mm. Over 21g creates no headspace." },
+    ],
+  },
+  {
+    id: "dry_cracked",
+    label: "Dry, cracked puck",
+    emoji: "🏜️",
+    category: "puck",
+    causes: [
+      "Grind too fine — over-extracted, all moisture was pulled through",
+      "Shot ran too long — extended contact dried the bed",
+      "Temperature too high — excessive heat evaporated moisture",
+    ],
+    fixes: [
+      { tool: "Fellow Opus", action: "Go 1–2 micro clicks coarser. Dry cracked puck = over-extraction." },
+      { tool: "Time", action: "Reduce extraction time. If shot ran past 38s it likely over-extracted." },
+      { tool: "Stone", action: "Drop brew temp 1–2°C. High temp accelerates extraction and dries the puck faster." },
+    ],
+  },
+  {
+    id: "puck_sticks",
+    label: "Puck sticks to shower screen",
+    emoji: "🪣",
+    category: "puck",
+    causes: [
+      "Overdosed — puck pressed hard against shower screen during extraction",
+      "No headspace after tamping — basket too full",
+    ],
+    fixes: [
+      { tool: "Dose", action: "Reduce by 0.5–1g. Ideal headspace after tamping is 2–3mm from rim to coffee surface." },
+      { tool: "Normcore Tamper", action: "Tamp doesn't compress more than the spring allows — if puck still hits screen, it's a dose issue not pressure." },
+    ],
+  },
+];
+
+const SPRAY_SYMPTOMS = [
+  {
+    id: "spray_wild",
+    label: "Wild spray / multiple jets",
+    emoji: "💥",
+    category: "spray",
+    causes: [
+      "Severe channeling — water found multiple weak paths through the puck",
+      "WDT not thorough enough — dry clumps left void channels",
+      "Uneven tamp — tilted tamp compresses one side more, water avoids dense side",
+    ],
+    fixes: [
+      { tool: "WDT Needle", action: "Stir deeper and longer — at least 20–30 seconds in overlapping circular and radial patterns. You're breaking every clump." },
+      { tool: "Normcore Gravity Disc", action: "After WDT, place disc and spin gently 2–3 rotations. Don't press down — let gravity do the leveling." },
+      { tool: "Normcore Tamper", action: "Keep your elbow directly above the portafilter. Any tilt = uneven density = channeling." },
+    ],
+  },
+  {
+    id: "spray_edge",
+    label: "Spray from basket edge",
+    emoji: "🌀",
+    category: "spray",
+    causes: [
+      "Gap between puck and basket wall — grind shrinkage or poor distribution at edges",
+      "Normcore gravity disc not reaching basket wall — bed not leveled to edges",
+      "Tamp not flush to basket walls",
+    ],
+    fixes: [
+      { tool: "WDT Needle", action: "Make sure your needle strokes reach all the way to the basket wall — edge voids are common." },
+      { tool: "Normcore Gravity Disc", action: "Your 58mm disc should fit snugly. Let it settle under its own weight; tilting while spinning creates edge gaps." },
+      { tool: "Fellow Opus", action: "Go slightly finer — a finer grind swells more and seals gaps against basket walls better." },
+    ],
+  },
+  {
+    id: "spray_one_side",
+    label: "Lopsided / one-sided flow",
+    emoji: "↗️",
+    category: "spray",
+    causes: [
+      "Tilted tamp — most common cause, creates high and low density zones",
+      "Uneven grind distribution from Opus flip — grounds landed unevenly in basket",
+      "Gravity disc tilted when spinning",
+    ],
+    fixes: [
+      { tool: "Normcore Tamper", action: "Use a mirror or level surface. Elbow up, wrist neutral, press straight down. The spring click tells you when, not how hard." },
+      { tool: "Opus Flip Technique", action: "After flipping dosing cup into basket, tap the bottom firmly before removing. Grounds should settle level before you start WDT." },
+      { tool: "WDT Needle", action: "After leveling, check the bed visually before tamping — it should look like a flat, even surface." },
+    ],
+  },
+  {
+    id: "spray_delay",
+    label: "Good start then sudden spray",
+    emoji: "⚡",
+    category: "spray",
+    causes: [
+      "Channel opened mid-shot — a weak point in the puck collapsed under sustained 9-bar pressure",
+      "Fine grind migrated — fines moved and blocked some paths, forcing water to reroute",
+      "Grind slightly too coarse for density needed at 9 bar",
+    ],
+    fixes: [
+      { tool: "Fellow Opus", action: "Go 1 micro click finer to increase puck density and resist mid-shot collapse." },
+      { tool: "WDT Needle", action: "A mid-shot channel usually starts from a prep flaw. More thorough WDT prevents the weak points." },
+      { tool: "Normcore Tamper", action: "Make sure you're getting the spring click — an under-tamped puck is more prone to mid-shot channeling." },
+    ],
+  },
+  {
+    id: "spray_fast",
+    label: "Shot runs too fast + sprays",
+    emoji: "🏃",
+    category: "spray",
+    causes: [
+      "Grind too coarse — low resistance means water blasts through and creates turbulence",
+      "Under-dosed — thin puck collapses, all water exits in one burst",
+    ],
+    fixes: [
+      { tool: "Fellow Opus", action: "Go finer — at least 2 macro steps or 3–4 micro clicks. A fast shot with spray is nearly always a grind problem." },
+      { tool: "Dose", action: "Check you're hitting 18g minimum. A thin puck under 9 bar has nothing to slow the water down." },
+      { tool: "Time", action: "Target first drip at 6–8 seconds from pump start. If it's dripping at 2–3s, you're too coarse." },
+    ],
+  },
+];
+
+const ALL_SYMPTOMS = [...PUCK_SYMPTOMS, ...SPRAY_SYMPTOMS];
+
+function DiagnoseTab() {
+  const [selected, setSelected] = useState(null);
+  const [category, setCategory] = useState("all");
+
+  const filtered = ALL_SYMPTOMS.filter(s => category === "all" || s.category === category);
+  const active = selected ? ALL_SYMPTOMS.find(s => s.id === selected) : null;
+
+  return (
+    <div>
+      {/* Category filter */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {[["all", "All Issues"], ["puck", "💧 Soggy Puck"], ["spray", "💥 Spraying"]].map(([val, label]) => (
+          <button key={val} onClick={() => { setCategory(val); setSelected(null); }} style={{
+            padding: "8px 16px", borderRadius: 8,
+            background: category === val ? "#c17f3c" : "transparent",
+            border: `1px solid ${category === val ? "#c17f3c" : "#2a1a0e"}`,
+            color: category === val ? "#0f0905" : "#7a5a3a",
+            fontFamily: "'DM Mono', monospace", fontSize: 11,
+            letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer",
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Symptom grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: active ? 20 : 0 }}>
+        {filtered.map(s => (
+          <button key={s.id} onClick={() => setSelected(selected === s.id ? null : s.id)} style={{
+            background: selected === s.id ? "#1f1208" : "#1a0f08",
+            border: `1px solid ${selected === s.id ? "#c17f3c" : "#2a1a0e"}`,
+            borderRadius: 10, padding: "14px 16px",
+            display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer", textAlign: "left",
+          }}>
+            <span style={{ fontSize: 24 }}>{s.emoji}</span>
+            <div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: selected === s.id ? "#c17f3c" : "#f0e4d0", fontWeight: 500 }}>{s.label}</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                {s.category === "puck" ? "Puck" : "Spray"}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Detail panel */}
+      {active && (
+        <div className="slide-in" style={{ background: "#1a0f08", border: "1px solid #c17f3c", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid #2a1a0e", display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 32 }}>{active.emoji}</span>
+            <div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "#f0e4d0" }}>{active.label}</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#c17f3c", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                {active.causes.length} known causes · {active.fixes.length} fixes for your setup
+              </div>
+            </div>
+          </div>
+
+          {/* Causes */}
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid #1f1208" }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>Why it's happening</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {active.causes.map((c, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#2a1a0e", color: "#7a5a3a", fontFamily: "'DM Mono', monospace", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i+1}</div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#9a7a5a", lineHeight: 1.7 }}>{c}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fixes */}
+          <div style={{ padding: "20px 24px" }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>Fix it — with your gear</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {active.fixes.map((fix, i) => (
+                <div key={i} style={{ background: "#130b05", borderRadius: 8, padding: 14, borderLeft: "3px solid #3a2010" }}>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#c17f3c", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>{fix.tool}</div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#c0a080", lineHeight: 1.7 }}>{fix.action}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* General principles */}
+      {!active && (
+        <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 12, padding: 20, marginTop: 8 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "#c17f3c", marginBottom: 14 }}>The Golden Rules for Your Setup</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              ["Flush first", "Always purge the Stone group head 2–3 seconds before locking the portafilter. Removes stale hot water sitting in the screen."],
+              ["WDT is the most important step", "Your bottomless PF will expose every distribution flaw. 20–30 seconds of thorough needle stirring — radial and circular — eliminates the micro-voids that cause channeling."],
+              ["Gravity disc after WDT, not instead of", "WDT breaks clumps. The Normcore disc levels. You need both, in that order. Disc-only skips the clump-breaking step."],
+              ["First drip timing", "On the Stone at 9 bar, first drip should appear at 6–8 seconds from pump start. Earlier = too coarse or under-dosed. Later = too fine or over-dosed."],
+              ["Bottomless tells the truth", "A centered, golden, unified stream = good prep. Any split, spray, or blonde streak = go back to distribution. The grinder is rarely the first culprit."],
+            ].map(([title, body]) => (
+              <div key={title} style={{ borderBottom: "1px solid #1f1208", paddingBottom: 10 }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#f0e4d0", marginBottom: 4 }}>{title}</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", lineHeight: 1.7 }}>{body}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function EspressoApp() {
+  const [activeTab, setActiveTab] = useState("log");
+  const [shots, setShots] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("espresso_shots") || "[]"); } catch { return []; }
+  });
+  const [form, setForm] = useState({ ...defaultShot });
+  const [checklist, setChecklist] = useState({});
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem("espresso_shots", JSON.stringify(shots)); } catch {}
+  }, [shots]);
+
+  const ratio = form.yield && form.dose ? (form.yield / form.dose).toFixed(1) : "–";
+
+  const handleSave = () => {
+    setShots(prev => [{ ...form, id: Date.now() }, ...prev]);
+    setSaved(true);
+    setForm({ ...defaultShot });
+    setChecklist({});
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const deleteShot = (id) => setShots(prev => prev.filter(s => s.id !== id));
+
+  const tasteFor = (val) => TASTE_OPTIONS.find(t => t.value === val) || TASTE_OPTIONS[2];
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#0f0905",
+      color: "#f0e4d0",
+      fontFamily: "'Georgia', serif",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #1a0f08; }
+        ::-webkit-scrollbar-thumb { background: #5a3a1a; border-radius: 2px; }
+        .tab-btn { cursor: pointer; transition: all 0.2s; }
+        .tab-btn:hover { opacity: 0.8; }
+        .step-card { transition: border-color 0.2s; }
+        .check-btn { cursor: pointer; transition: all 0.15s; border: none; }
+        .check-btn:hover { transform: scale(1.05); }
+        .del-btn { opacity: 0.3; cursor: pointer; background: none; border: none; color: #f0e4d0; font-size: 16px; transition: opacity 0.2s; }
+        .del-btn:hover { opacity: 1; }
+        input, textarea, select { font-family: 'DM Mono', monospace; }
+        .pulse { animation: pulse 0.4s ease-out; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ borderBottom: "1px solid #2a1a0e", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, letterSpacing: "-0.5px", color: "#f0e4d0" }}>
+            Stone × Opus
+          </div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#7a5a3a", letterSpacing: "0.15em", marginTop: 2, textTransform: "uppercase" }}>
+            Espresso Companion
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[
+            { id: "log", label: "Log Shot" },
+            { id: "diagnose", label: "Diagnose" },
+            { id: "workflow", label: "Workflow" },
+            { id: "history", label: "History" },
+            { id: "beans", label: "Beans" },
+            { id: "clean", label: "Clean" },
+            { id: "gear", label: "Gear" },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              className="tab-btn"
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? "#c17f3c" : "transparent",
+                color: activeTab === tab.id ? "#0f0905" : "#7a5a3a",
+                border: `1px solid ${activeTab === tab.id ? "#c17f3c" : "#2a1a0e"}`,
+                borderRadius: 6,
+                padding: "7px 14px",
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px" }}>
+
+        {/* LOG SHOT TAB */}
+        {activeTab === "log" && (
+          <div className="slide-in">
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, marginBottom: 24, color: "#c17f3c" }}>
+              New Shot
+            </div>
+
+            {/* Ratio display */}
+            <div style={{
+              background: "#1a0f08",
+              border: "1px solid #2a1a0e",
+              borderRadius: 12,
+              padding: "20px 28px",
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 40,
+            }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 42, fontWeight: 500, color: "#c17f3c", lineHeight: 1 }}>1:{ratio}</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Brew Ratio</div>
+              </div>
+              <div style={{ width: 1, height: 50, background: "#2a1a0e" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, color: "#f0e4d0" }}>{form.time}s</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Time</div>
+              </div>
+              <div style={{ width: 1, height: 50, background: "#2a1a0e" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, color: "#f0e4d0" }}>{form.dose}g → {form.yield}g</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Dose → Yield</div>
+              </div>
+              <div style={{ width: 1, height: 50, background: "#2a1a0e" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, color: "#f0e4d0" }}>{form.macro}.{form.micro}</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Grind (M.μ)</div>
+              </div>
+            </div>
+
+            {/* Input grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+              {[
+                { key: "dose", label: "Dose (g)", min: 14, max: 22, step: 0.5, hint: "18–20g for 58mm" },
+                { key: "yield", label: "Yield (g)", min: 20, max: 50, step: 0.5, hint: "36–40g typical" },
+                { key: "time", label: "Time (s)", min: 15, max: 60, step: 1, hint: "25–35s target" },
+              ].map(({ key, label, min, max, step, hint }) => (
+                <div key={key} style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 16 }}>
+                  <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>{label}</label>
+                  <input
+                    type="number"
+                    min={min} max={max} step={step}
+                    value={form[key]}
+                    onChange={e => setForm(f => ({ ...f, [key]: parseFloat(e.target.value) || 0 }))}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#f0e4d0",
+                      fontSize: 28,
+                      fontWeight: 500,
+                      width: "100%",
+                      outline: "none",
+                    }}
+                  />
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#3a2010", marginTop: 4 }}>{hint}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Grind settings */}
+            <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 16 }}>Fellow Opus Grind Setting</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 8 }}>Macro (outer ring) · espresso: 1–3</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[1, 2, 3, 4, 5].map(v => (
+                      <button key={v} onClick={() => setForm(f => ({ ...f, macro: v }))} style={{
+                        width: 44, height: 44, borderRadius: 8,
+                        background: form.macro === v ? "#c17f3c" : "#0f0905",
+                        border: `1px solid ${form.macro === v ? "#c17f3c" : "#2a1a0e"}`,
+                        color: form.macro === v ? "#0f0905" : "#7a5a3a",
+                        fontFamily: "'DM Mono', monospace", fontSize: 16, fontWeight: 500,
+                        cursor: "pointer",
+                      }}>{v}</button>
+                    ))}
+                  </div>
+                  {form.macro > 3 && <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#8b4040", marginTop: 6 }}>⚠ Over 3 may be too coarse for espresso</div>}
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 8 }}>Micro (inner ring) · 1–6 per macro step</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[1, 2, 3, 4, 5, 6].map(v => (
+                      <button key={v} onClick={() => setForm(f => ({ ...f, micro: v }))} style={{
+                        width: 38, height: 38, borderRadius: 6,
+                        background: form.micro === v ? "#8b5a2a" : "#0f0905",
+                        border: `1px solid ${form.micro === v ? "#8b5a2a" : "#2a1a0e"}`,
+                        color: form.micro === v ? "#f0e4d0" : "#5a3a1a",
+                        fontFamily: "'DM Mono', monospace", fontSize: 13,
+                        cursor: "pointer",
+                      }}>{v}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Taste */}
+            <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>Taste Profile</div>
+              <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                {TASTE_OPTIONS.map(t => (
+                  <button key={t.value} onClick={() => setForm(f => ({ ...f, taste: t.value }))} style={{
+                    flex: 1, padding: "10px 6px", borderRadius: 8,
+                    background: form.taste === t.value ? t.color + "22" : "#0f0905",
+                    border: `1px solid ${form.taste === t.value ? t.color : "#2a1a0e"}`,
+                    color: form.taste === t.value ? t.color : "#5a3a1a",
+                    fontFamily: "'DM Mono', monospace", fontSize: 11,
+                    cursor: "pointer", textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 18, marginBottom: 4 }}>{t.emoji}</div>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {form.taste !== undefined && (
+                <div style={{ background: "#0f0905", borderRadius: 8, padding: 14, borderLeft: `3px solid ${tasteFor(form.taste).color}` }}>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#c0a080", lineHeight: 1.6 }}>
+                    {ADJUSTMENT_TIPS[String(form.taste)]}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Beans selector */}
+            <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>Lavazza Bean</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: form.beanId ? 14 : 0 }}>
+                {LAVAZZA_BEANS.map(b => (
+                  <button key={b.id} onClick={() => {
+                    if (form.beanId === b.id) {
+                      setForm(f => ({ ...f, beanId: "", beans: "" }));
+                    } else {
+                      setForm(f => ({ ...f, beanId: b.id, beans: b.name, macro: b.opusMacro, micro: b.opusMicro, dose: b.dose, yield: b.yield, time: b.time }));
+                    }
+                  }} style={{
+                    padding: "8px 14px", borderRadius: 8,
+                    background: form.beanId === b.id ? b.color + "22" : "#0f0905",
+                    border: `1px solid ${form.beanId === b.id ? b.color : "#2a1a0e"}`,
+                    color: form.beanId === b.id ? b.color : "#5a3a1a",
+                    fontFamily: "'DM Mono', monospace", fontSize: 11, cursor: "pointer",
+                  }}>{b.name}</button>
+                ))}
+              </div>
+              {form.beanId && (() => {
+                const b = LAVAZZA_BEANS.find(x => x.id === form.beanId);
+                return b ? (
+                  <div style={{ background: "#0f0905", borderRadius: 8, padding: 14, borderLeft: `3px solid ${b.color}` }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                      {b.notes.map(n => (
+                        <span key={n} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: b.color, background: b.color + "18", padding: "3px 8px", borderRadius: 4 }}>{n}</span>
+                      ))}
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4a2e10" }}>{b.composition}</span>
+                    </div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#7a5a3a", lineHeight: 1.7 }}>{b.tip}</div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#3a2010", marginTop: 8 }}>↑ Starting params auto-loaded above</div>
+                  </div>
+                ) : null;
+              })()}
+            </div>
+
+            {/* Notes */}
+            <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 16, marginBottom: 20 }}>
+              <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Notes</label>
+              <input
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Observations, channeling, crema, flow…"
+                style={{ background: "transparent", border: "none", color: "#f0e4d0", fontSize: 13, width: "100%", outline: "none", fontFamily: "'DM Mono', monospace" }}
+              />
+            </div>
+
+            <button onClick={handleSave} style={{
+              width: "100%", padding: "16px",
+              background: saved ? "#4caf72" : "#c17f3c",
+              border: "none", borderRadius: 10,
+              color: "#0f0905", fontFamily: "'DM Mono', monospace",
+              fontSize: 13, fontWeight: 500, letterSpacing: "0.12em",
+              textTransform: "uppercase", cursor: "pointer",
+              transition: "background 0.3s",
+            }}>
+              {saved ? "✓ Shot Logged" : "Log Shot"}
+            </button>
+          </div>
+        )}
+
+        {/* WORKFLOW TAB */}
+        {activeTab === "workflow" && (
+          <div className="slide-in">
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, marginBottom: 8, color: "#c17f3c" }}>
+              Shot Workflow
+            </div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 28 }}>
+              Your specific prep sequence for Stone + Opus + Normcore 58mm
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {WORKFLOW.map((item, i) => {
+                const done = checklist[item.id];
+                return (
+                  <div key={item.id} className="step-card" style={{
+                    background: "#1a0f08",
+                    border: `1px solid ${done ? "#4caf72" : "#2a1a0e"}`,
+                    borderRadius: 10,
+                    padding: "16px 20px",
+                    display: "flex", alignItems: "flex-start", gap: 16,
+                  }}>
+                    <button
+                      className="check-btn"
+                      onClick={() => setChecklist(c => ({ ...c, [item.id]: !c[item.id] }))}
+                      style={{
+                        width: 28, height: 28, borderRadius: "50%", flexShrink: 0, marginTop: 2,
+                        background: done ? "#4caf72" : "#0f0905",
+                        border: `2px solid ${done ? "#4caf72" : "#3a2010"}`,
+                        color: done ? "#0f0905" : "#5a3a1a",
+                        fontSize: 14, fontWeight: 700,
+                      }}
+                    >{done ? "✓" : i + 1}</button>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: done ? "#4caf72" : "#f0e4d0", marginBottom: 4 }}>
+                        {item.step}
+                      </div>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#7a5a3a", lineHeight: 1.7 }}>
+                        {item.detail}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: 24, background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 20 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: "#c17f3c", marginBottom: 12 }}>Starting Point for Your Setup</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {[
+                  ["Dose", "18g in"],
+                  ["Yield", "36g out (1:2)"],
+                  ["Time", "28–32 seconds"],
+                  ["Opus macro", "Setting 2"],
+                  ["Opus micro", "Inner ring 3"],
+                  ["Temp (Stone)", "93–94°C"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #2a1a0e", paddingBottom: 8 }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a" }}>{k}</span>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#f0e4d0" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => setChecklist({})} style={{
+              marginTop: 16, padding: "12px 20px",
+              background: "transparent", border: "1px solid #2a1a0e",
+              borderRadius: 8, color: "#5a3a1a",
+              fontFamily: "'DM Mono', monospace", fontSize: 11,
+              letterSpacing: "0.1em", textTransform: "uppercase",
+              cursor: "pointer",
+            }}>Reset Checklist</button>
+          </div>
+        )}
+
+        {/* HISTORY TAB */}
+        {activeTab === "history" && (
+          <div className="slide-in">
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, marginBottom: 8, color: "#c17f3c" }}>
+              Shot History
+            </div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 24 }}>
+              {shots.length} shot{shots.length !== 1 ? "s" : ""} logged
+            </div>
+
+            {shots.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 60, color: "#3a2010", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>
+                No shots logged yet.<br />Pull your first one.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {shots.map((shot) => {
+                  const taste = tasteFor(shot.taste);
+                  const r = shot.yield && shot.dose ? (shot.yield / shot.dose).toFixed(1) : "–";
+                  return (
+                    <div key={shot.id} style={{
+                      background: "#1a0f08", border: "1px solid #2a1a0e",
+                      borderRadius: 10, padding: "16px 20px",
+                      display: "flex", alignItems: "center", gap: 20,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a" }}>{shot.date}</span>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: taste.color }}>{taste.emoji} {taste.label}</span>
+                          {shot.beans && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", fontStyle: "italic" }}>{shot.beans}</span>}
+                        </div>
+                        <div style={{ display: "flex", gap: 20 }}>
+                          {[
+                            [`${shot.dose}g→${shot.yield}g`, "dose/yield"],
+                            [`1:${r}`, "ratio"],
+                            [`${shot.time}s`, "time"],
+                            [`${shot.macro}.${shot.micro}`, "grind"],
+                          ].map(([val, label]) => (
+                            <div key={label}>
+                              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, color: "#f0e4d0" }}>{val}</div>
+                              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#3a2010", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {shot.notes && <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginTop: 8 }}>{shot.notes}</div>}
+                      </div>
+                      <button className="del-btn" onClick={() => deleteShot(shot.id)}>✕</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* DIAGNOSE TAB */}
+        {activeTab === "diagnose" && (
+          <div className="slide-in">
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, marginBottom: 8, color: "#c17f3c" }}>
+              Shot Diagnostics
+            </div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 28 }}>
+              Read your puck and your bottomless PF — then fix the root cause
+            </div>
+
+            <DiagnoseTab />
+          </div>
+        )}
+
+        {/* BEANS TAB */}
+        {activeTab === "beans" && (
+          <div className="slide-in">
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, marginBottom: 8, color: "#c17f3c" }}>
+              Lavazza Espresso Beans
+            </div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 28 }}>
+              Dialing guide for each blend on your Stone + Opus setup
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {LAVAZZA_BEANS.map(bean => (
+                <div key={bean.id} style={{ background: "#1a0f08", border: `1px solid #2a1a0e`, borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ borderLeft: `4px solid ${bean.color}`, padding: "20px 20px 0 20px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div>
+                        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 700, color: "#f0e4d0" }}>{bean.name}</div>
+                        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: bean.color, letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 2 }}>{bean.tagline}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginBottom: 4 }}>
+                          {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                            <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: i <= bean.intensity ? bean.color : "#2a1a0e" }} />
+                          ))}
+                        </div>
+                        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#5a3a1a", textAlign: "right" }}>Intensity {bean.intensity}/10</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                      {bean.notes.map(n => (
+                        <span key={n} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: bean.color, background: bean.color + "18", padding: "3px 8px", borderRadius: 4 }}>{n}</span>
+                      ))}
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4a2e10", background: "#1f1208", padding: "3px 8px", borderRadius: 4 }}>{bean.roast}</span>
+                    </div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4a3020", marginBottom: 16 }}>{bean.composition} · {bean.origin}</div>
+                  </div>
+                  <div style={{ background: "#130b05", padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, borderTop: "1px solid #1f1208" }}>
+                    {[
+                      ["Macro", bean.opusMacro],
+                      ["Micro", bean.opusMicro],
+                      ["Dose", `${bean.dose}g`],
+                      ["Yield", `${bean.yield}g`],
+                      ["Time", `${bean.time}s`],
+                    ].map(([label, val]) => (
+                      <div key={label} style={{ textAlign: "center" }}>
+                        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, color: "#f0e4d0", fontWeight: 500 }}>{val}</div>
+                        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4a2e10", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 2 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ padding: "14px 20px", borderTop: "1px solid #1f1208" }}>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#7a5a3a", lineHeight: 1.7 }}>{bean.tip}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* GEAR TAB */}
+        {activeTab === "gear" && (
+          <div className="slide-in">
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, marginBottom: 8, color: "#c17f3c" }}>
+              Your Setup
+            </div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 28 }}>
+              Calibrated for your specific equipment
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {[
+                {
+                  name: "Stone Espresso",
+                  role: "Machine",
+                  specs: [["Boiler", "1.5L dual boiler"], ["Heating system", "200W"], ["Steam chamber", "0.8L"], ["Water tank", "1.2L (removable)"], ["Power", "1000W"], ["Target temp", "92–96°C"]],
+                  note: "Allow full warm-up time before pulling. The Stone's dual boiler means stable brew temp independent of steam."
+                },
+                {
+                  name: "Fellow Opus",
+                  role: "Grinder",
+                  specs: [["Burrs", "40mm conical C6-40"], ["Macro steps", "41 total, 1–3 for espresso"], ["Micro ring", "6 steps per macro"], ["Retention", "~0.5–0.8g typical"], ["Tip", "Tap body after grinding to release grounds"]],
+                  note: "For 58mm basket: start at macro 2, micro 3. Finer = more extraction. Each micro click = ~⅓ of a macro step."
+                },
+                {
+                  name: "Normcore 58mm Bottomless",
+                  role: "Portafilter",
+                  specs: [["Size", "58mm"], ["Type", "Bottomless / naked"], ["Capacity", "18–22g VST-compatible"]],
+                  note: "Bottomless reveals channeling visually. Ideal channels = centered, consistent golden stream. Spraying or splitting = distribution issue."
+                },
+                {
+                  name: "Normcore Spring-Loaded V4",
+                  role: "Tamper",
+                  specs: [["Mechanism", "Spring calibrated"], ["Target", "15–20kg consistent pressure"], ["Benefit", "Click feedback = correct load every time"]],
+                  note: "Press until you feel and hear the spring click. No need to twist or rock. The V4 spring removes tamper pressure as a variable."
+                },
+                {
+                  name: "WDT Needle + Normcore Gravity",
+                  role: "Distribution",
+                  specs: [["WDT", "Needle stirring tool"], ["Gravity disc", "Normcore weighted distributor"], ["Order", "WDT first, then gravity"]],
+                  note: "WDT breaks up clumps and voids. Gravity distributor then levels the bed. Together they're more thorough than either alone. Spin the gravity disc gently — don't over-compress."
+                },
+              ].map(gear => (
+                <div key={gear.name} style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 12, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 700, color: "#f0e4d0" }}>{gear.name}</div>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#c17f3c", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 2 }}>{gear.role}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 24px", marginBottom: 14 }}>
+                    {gear.specs.map(([k, v]) => (
+                      <div key={k} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #1f120a", paddingBottom: 6 }}>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a" }}>{k}</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#b0906a" }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ borderLeft: "2px solid #3a2010", paddingLeft: 12 }}>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#7a5a3a", lineHeight: 1.7 }}>{gear.note}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* CLEAN TAB */}
+        {activeTab === "clean" && (
+          <CleanPanel />
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+function CleanPanel() {
+  const [schedule, setSchedule] = useState("daily");
+  const [done, setDone] = useState({});
+
+  const SCHEDULES = [
+    {
+      id: "daily",
+      freq: "Daily",
+      color: "#c17f3c",
+      steps: [
+        {
+          title: "Flush group head",
+          detail: "Run a 2–3 second blank (no portafilter) before your first shot of the day to purge stale water from the Stone's shower screen. Do it again before each shot if you've been away from the machine more than 20 minutes.",
+          gear: "Stone",
+        },
+        {
+          title: "Purge after each shot",
+          detail: "After pulling a shot, run a 1–2 second blank immediately to clear spent coffee residue from the shower screen before it bakes on. Wipe the screen gasket area with a damp cloth.",
+          gear: "Stone",
+        },
+        {
+          title: "Rinse portafilter & basket",
+          detail: "Knock the puck, then rinse the Normcore 58mm bottomless portafilter and basket under hot water immediately — don't let coffee oils dry in the basket holes. Wipe dry.",
+          gear: "Normcore 58mm",
+        },
+        {
+          title: "Wipe distribution tools",
+          detail: "Wipe the Normcore gravity distributor disc with a dry cloth after each use. Rinse the WDT needle tips briefly under water and dry — don't leave coffee residue on the needles.",
+          gear: "WDT + Normcore Gravity",
+        },
+        {
+          title: "Tap & brush Opus chute",
+          detail: "After grinding, tap the Fellow Opus body firmly 2–3 times to dislodge retained grounds (0.5–0.8g typical). Brush the chute exit with the included brush if grounds are clinging.",
+          gear: "Fellow Opus",
+        },
+      ],
+    },
+    {
+      id: "weekly",
+      freq: "Weekly",
+      color: "#8b5a2a",
+      steps: [
+        {
+          title: "Backflush — water only",
+          detail: "Insert a blind basket (solid, no holes) into your portafilter. Lock into the Stone group head. Run 5–6 burst cycles: pump on for 5 seconds, off, repeat. This forces water back through the solenoid valve and clears oils from the group head.",
+          gear: "Stone",
+        },
+        {
+          title: "Puly Caff backflush",
+          detail: "Add ½ tsp Puly Caff powder to the blind basket. Run 5–6 burst cycles. Then repeat with a clean blind basket and plain water for 4–5 flush cycles. Water must run clear and odourless before you're done.",
+          gear: "Stone + Blind Basket",
+        },
+        {
+          title: "Portafilter & basket deep soak",
+          detail: "Remove the basket from the bottomless portafilter. Soak both in warm water with a pinch of Puly Caff for 15–20 minutes. Scrub basket holes with a stiff brush. Rinse twice thoroughly. The bottomless design means oils collect on the basket walls — don't skip this.",
+          gear: "Normcore 58mm",
+        },
+        {
+          title: "Opus burr brush",
+          detail: "Remove the Fellow Opus hopper. Use the included brush to sweep the burr chamber and exit chute. Don't use water near the burrs — brush only. A buildup of stale coffee oil on the 40mm conical burrs directly affects grind flavour.",
+          gear: "Fellow Opus",
+        },
+        {
+          title: "Wipe tamper base",
+          detail: "Wipe the Normcore Spring V4 base plate with a damp cloth to remove coffee oil residue. Don't submerge the spring mechanism — the calibration spring is not waterproof.",
+          gear: "Normcore V4",
+        },
+        {
+          title: "Stone — check drip tray & water tank",
+          detail: "Empty and rinse the drip tray. Wipe the 1.2L removable tank interior with a damp cloth. Refill with filtered water — the Stone's dual boiler is sensitive to mineral buildup over time.",
+          gear: "Stone",
+        },
+      ],
+    },
+    {
+      id: "monthly",
+      freq: "Monthly",
+      color: "#6b3010",
+      steps: [
+        {
+          title: "Deep group head clean",
+          detail: "Remove the shower screen (if accessible on the Stone — check your model). Soak in Puly Caff solution for 20–30 minutes. Scrub the screen holes with a group head brush. Rinse and refit. A blocked or partially clogged screen causes uneven water distribution across your 58mm puck.",
+          gear: "Stone",
+        },
+        {
+          title: "Opus deep burr clean",
+          detail: "Remove the hopper, then use the lifting tabs to remove the ring burr. Brush thoroughly on both sides with a stiff brush. Inspect burr edges — if they look glazed or shiny rather than sharp, they may be approaching the end of their life (typically 200–300kg). Do not wash the burr in water.",
+          gear: "Fellow Opus",
+        },
+        {
+          title: "Grindz or rice cleaning (optional)",
+          detail: "Run a small amount of Grindz cleaning tablets or uncooked white rice through the Opus at a coarse setting to absorb oils. Follow with a small amount of your coffee to purge any residue before pulling a shot.",
+          gear: "Fellow Opus",
+        },
+        {
+          title: "Descale check — Stone dual boiler",
+          detail: "Check your Stone's descale indicator or documentation schedule. The 1.5L dual boiler system is vulnerable to limescale in hard water areas — descale with a dedicated espresso machine descaler or citric acid solution. Follow the Stone's specific descale procedure exactly; each boiler must be descaled in sequence.",
+          gear: "Stone",
+        },
+        {
+          title: "Inspect group head gasket & seal",
+          detail: "Examine the portafilter seal (the rubber ring in the Stone's group head). If it's cracked, brittle, or the portafilter feels loose when locking in, the gasket needs replacing. A worn gasket causes pressure leaks and inconsistent extraction — this is the first thing to check if shots become unpredictable despite good prep.",
+          gear: "Stone",
+        },
+        {
+          title: "Full portafilter hardware check",
+          detail: "Inspect the Normcore 58mm bottomless portafilter — check the basket isn't bent or dented (this affects how the puck seats). Look for hairline cracks around the spout area. A warped basket is a surprisingly common source of persistent channeling that prep technique alone can't fix.",
+          gear: "Normcore 58mm",
+        },
+      ],
+    },
+  ];
+
+  const current = SCHEDULES.find(s => s.id === schedule);
+  const completedCount = current.steps.filter((_, i) => done[`${schedule}-${i}`]).length;
+  const scheduleColor = { daily: "#c17f3c", weekly: "#8b5a2a", monthly: "#6b3010" };
+
+  const CLEAN_TIPS = [
+    "Never use dish soap on the portafilter basket or group head — soap residue destroys crema and flavour for multiple shots.",
+    "Puly Caff is not optional. Water alone doesn't remove coffee oils. Rancid oils in the group head = bitter, flat, one-dimensional shots.",
+    "The bottomless portafilter shows contamination you'd never notice on a spouted one — inspect the basket walls regularly.",
+    "The Stone has two separate boilers. If descaling, both need attention — check whether your machine has a single or dual descale cycle.",
+    "Rinse everything twice after Puly Caff. Even trace chemical residue will ruin the next shot and is detectable by taste.",
+    "The Fellow Opus 40mm conical burrs are the most critical cleaning surface. Stale oil on burrs = muddy, flat flavour regardless of how fresh your beans are.",
+  ];
+
+  return (
+    <div className="slide-in">
+      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, marginBottom: 8, color: "#c17f3c" }}>
+        Cleaning Guide
+      </div>
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 28 }}>
+        Stone · Fellow Opus · Normcore 58mm · Spring Tamper V4 · WDT + Gravity
+      </div>
+
+      {/* Schedule tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {SCHEDULES.map(s => (
+          <button key={s.id} onClick={() => setSchedule(s.id)} style={{
+            padding: "8px 20px", borderRadius: 6,
+            background: schedule === s.id ? s.color + "22" : "transparent",
+            border: `1px solid ${schedule === s.id ? s.color : "#2a1a0e"}`,
+            color: schedule === s.id ? s.color : "#5a3a1a",
+            fontFamily: "'DM Mono', monospace", fontSize: 11,
+            letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer",
+          }}>{s.freq}</button>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: "12px 18px", marginBottom: 16, display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ flex: 1, height: 4, background: "#0f0905", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{
+            height: "100%",
+            width: `${(completedCount / current.steps.length) * 100}%`,
+            background: scheduleColor[schedule],
+            borderRadius: 2, transition: "width 0.3s",
+          }} />
+        </div>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: scheduleColor[schedule], whiteSpace: "nowrap" }}>
+          {completedCount} / {current.steps.length} done
+        </div>
+        <button onClick={() => setDone(d => {
+          const n = {...d};
+          current.steps.forEach((_, i) => delete n[`${schedule}-${i}`]);
+          return n;
+        })} style={{ background: "none", border: "none", color: "#3a2010", fontFamily: "'DM Mono', monospace", fontSize: 9, cursor: "pointer", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          RESET
+        </button>
+      </div>
+
+      {/* Steps */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+        {current.steps.map((step, i) => {
+          const key = `${schedule}-${i}`;
+          const isDone = done[key];
+          return (
+            <div key={i} onClick={() => setDone(d => ({ ...d, [key]: !d[key] }))} style={{
+              background: "#1a0f08",
+              border: `1px solid ${isDone ? scheduleColor[schedule] + "88" : "#2a1a0e"}`,
+              borderRadius: 10, padding: "16px 20px",
+              display: "flex", gap: 16, alignItems: "flex-start",
+              cursor: "pointer", opacity: isDone ? 0.55 : 1, transition: "opacity 0.2s",
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                background: isDone ? scheduleColor[schedule] : "#0f0905",
+                border: `2px solid ${isDone ? scheduleColor[schedule] : "#3a2010"}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: isDone ? "#0f0905" : "#5a3a1a",
+                fontFamily: "'DM Mono', monospace", fontSize: isDone ? 13 : 11, fontWeight: 700,
+              }}>{isDone ? "✓" : i + 1}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: isDone ? "#5a3a1a" : "#f0e4d0" }}>{step.title}</div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: scheduleColor[schedule], background: scheduleColor[schedule] + "18", border: `1px solid ${scheduleColor[schedule]}44`, borderRadius: 4, padding: "2px 8px", letterSpacing: "0.1em", textTransform: "uppercase" }}>{step.gear}</div>
+                </div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", lineHeight: 1.8 }}>{step.detail}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Puly step-by-step callout for weekly */}
+      {schedule === "weekly" && (
+        <div style={{ background: "#150d06", border: "1px solid #8b5a2a", borderRadius: 10, padding: 20, marginBottom: 20 }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#8b5a2a", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 14 }}>Puly Caff Backflush — Exact Sequence</div>
+          {[
+            "Insert solid blind basket (no holes) into portafilter",
+            "Add ½ tsp Puly Caff powder to the basket",
+            "Lock portafilter into the Stone group head",
+            "Press brew button: run 5 seconds on, release — repeat 5–6 times",
+            "Remove portafilter and discard residue",
+            "Re-lock with clean blind basket, no powder",
+            "Run 4–5 burst cycles with plain water only",
+            "Water must run clear and with no chemical smell before you stop",
+          ].map((t, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 7, alignItems: "flex-start" }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#8b5a2a", width: 18, flexShrink: 0 }}>{i + 1}.</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#7a5a3a", lineHeight: 1.6 }}>{t}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tips */}
+      <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 20 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "#c17f3c", marginBottom: 14 }}>Watch Out For</div>
+        {CLEAN_TIPS.map((tip, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "flex-start" }}>
+            <div style={{ color: "#c17f3c", fontSize: 12, flexShrink: 0, marginTop: 1 }}>→</div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", lineHeight: 1.75 }}>{tip}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<EspressoApp />);
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
+</body>
+</html>
