@@ -325,7 +325,7 @@ function DiagnoseTab() {
   return (
     <div>
       {/* Category filter */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      <div className="cat-filter" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {[["all", "All Issues"], ["puck", "💧 Soggy Puck"], ["spray", "💥 Spraying"]].map(([val, label]) => (
           <button key={val} onClick={() => { setCategory(val); setSelected(null); }} style={{
             padding: "8px 16px", borderRadius: 8,
@@ -477,10 +477,26 @@ function EspressoApp() {
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         .slide-in { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 640px) {
+          .hdr { flex-direction: column !important; align-items: flex-start !important; gap: 14px; padding: 14px 16px !important; }
+          .nav-row { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; flex-wrap: nowrap !important; padding-bottom: 2px; }
+          .nav-row::-webkit-scrollbar { display: none; }
+          .nav-row button { flex-shrink: 0; }
+          .ratio-row { flex-wrap: wrap !important; gap: 16px !important; padding: 16px !important; }
+          .ratio-div { display: none !important; }
+          .grid-3 { grid-template-columns: 1fr 1fr !important; }
+          .grid-3 > *:last-child { grid-column: span 2; }
+          .grid-2-resp { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .grid-5 { grid-template-columns: repeat(3, 1fr) !important; }
+          .taste-row { flex-wrap: wrap !important; }
+          .taste-btn { min-width: calc(50% - 6px) !important; flex: none !important; }
+          .main-pad { padding: 20px 16px !important; padding-bottom: max(24px, env(safe-area-inset-bottom)) !important; }
+          .cat-filter { flex-wrap: wrap !important; }
+        }
       `}</style>
 
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #2a1a0e", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="hdr" style={{ borderBottom: "1px solid #2a1a0e", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100, background: "#0f0905" }}>
         <div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, letterSpacing: "-0.5px", color: "#f0e4d0" }}>
             Stone × Opus
@@ -489,7 +505,7 @@ function EspressoApp() {
             Espresso Companion
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="nav-row" style={{ display: "flex", gap: 6 }}>
           {[
             { id: "log", label: "Log Shot" },
             { id: "diagnose", label: "Diagnose" },
@@ -522,7 +538,7 @@ function EspressoApp() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px" }}>
+      <div className="main-pad" style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px" }}>
 
         {/* LOG SHOT TAB */}
         {activeTab === "log" && (
@@ -532,7 +548,7 @@ function EspressoApp() {
             </div>
 
             {/* Ratio display */}
-            <div style={{
+            <div className="ratio-row" style={{
               background: "#1a0f08",
               border: "1px solid #2a1a0e",
               borderRadius: 12,
@@ -546,17 +562,17 @@ function EspressoApp() {
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 42, fontWeight: 500, color: "#c17f3c", lineHeight: 1 }}>1:{ratio}</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Brew Ratio</div>
               </div>
-              <div style={{ width: 1, height: 50, background: "#2a1a0e" }} />
+              <div className="ratio-div" style={{ width: 1, height: 50, background: "#2a1a0e" }} />
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, color: "#f0e4d0" }}>{form.time}s</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Time</div>
               </div>
-              <div style={{ width: 1, height: 50, background: "#2a1a0e" }} />
+              <div className="ratio-div" style={{ width: 1, height: 50, background: "#2a1a0e" }} />
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, color: "#f0e4d0" }}>{form.dose}g → {form.yield}g</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Dose → Yield</div>
               </div>
-              <div style={{ width: 1, height: 50, background: "#2a1a0e" }} />
+              <div className="ratio-div" style={{ width: 1, height: 50, background: "#2a1a0e" }} />
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, color: "#f0e4d0" }}>{form.macro}.{form.micro}</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#5a3a1a", marginTop: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>Grind (M.μ)</div>
@@ -564,7 +580,7 @@ function EspressoApp() {
             </div>
 
             {/* Input grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+            <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
               {[
                 { key: "dose", label: "Dose (g)", min: 14, max: 22, step: 0.5, hint: "18–20g for 58mm" },
                 { key: "yield", label: "Yield (g)", min: 20, max: 50, step: 0.5, hint: "36–40g typical" },
@@ -595,7 +611,7 @@ function EspressoApp() {
             {/* Grind settings */}
             <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 20, marginBottom: 16 }}>
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 16 }}>Fellow Opus Grind Setting</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+              <div className="grid-2-resp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
                 <div>
                   <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#5a3a1a", marginBottom: 8 }}>Macro (outer ring) · espresso: 1–3</div>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -633,9 +649,9 @@ function EspressoApp() {
             {/* Taste */}
             <div style={{ background: "#1a0f08", border: "1px solid #2a1a0e", borderRadius: 10, padding: 20, marginBottom: 16 }}>
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#7a5a3a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>Taste Profile</div>
-              <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+              <div className="taste-row" style={{ display: "flex", gap: 10, marginBottom: 16 }}>
                 {TASTE_OPTIONS.map(t => (
-                  <button key={t.value} onClick={() => setForm(f => ({ ...f, taste: t.value }))} style={{
+                  <button className="taste-btn" key={t.value} onClick={() => setForm(f => ({ ...f, taste: t.value }))} style={{
                     flex: 1, padding: "10px 6px", borderRadius: 8,
                     background: form.taste === t.value ? t.color + "22" : "#0f0905",
                     border: `1px solid ${form.taste === t.value ? t.color : "#2a1a0e"}`,
@@ -898,7 +914,7 @@ function EspressoApp() {
                     </div>
                     <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4a3020", marginBottom: 16 }}>{bean.composition} · {bean.origin}</div>
                   </div>
-                  <div style={{ background: "#130b05", padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, borderTop: "1px solid #1f1208" }}>
+                  <div className="grid-5" style={{ background: "#130b05", padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, borderTop: "1px solid #1f1208" }}>
                     {[
                       ["Macro", bean.opusMacro],
                       ["Micro", bean.opusMicro],
@@ -1138,7 +1154,7 @@ function CleanPanel() {
       </div>
 
       {/* Schedule tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      <div className="cat-filter" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {SCHEDULES.map(s => (
           <button key={s.id} onClick={() => setSchedule(s.id)} style={{
             padding: "8px 20px", borderRadius: 6,
