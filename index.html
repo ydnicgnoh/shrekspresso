@@ -999,7 +999,12 @@ function EspressoApp() {
 
 function CleanPanel() {
   const [schedule, setSchedule] = useState("daily");
-  const [done, setDone] = useState({});
+  const [done, setDone] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("espresso_clean_done") || "{}"); } catch { return {}; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("espresso_clean_done", JSON.stringify(done)); } catch {}
+  }, [done]);
 
   const SCHEDULES = [
     {
